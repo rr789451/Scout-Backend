@@ -101,19 +101,24 @@ exports.updateSubscriptionStatus = async (stripeSubscriptionId, status) => {
     }
   };
 
-exports.updatePropertyStatus = async (propertyId, status, rentedBy = null) => {
+exports.updatePropertyStatus = async (propertyId, status, rentedBy = null, availableFrom, rentedUntil) => {
     try {
-        const updateData = { status };
+        const updateData = { status, availableFrom, rentedUntil };
 
         if(rentedBy !== null) {
             updateData.rentedBy = rentedBy;
         }
 
+        const docP = await databases.getDocument(DATABASE_ID, PROPERTIES_COLLECTION_ID, '67ec33530017f31d17c9');
+        console.log('Available From: ', docP.availableFrom, ', Rented Until: ', docP.rentedUntil);
+        const docS = await databases.getDocument(DATABASE_ID, SUBSCRIPTIONS_COLLECTION_ID, '6839bff40001d16cbccd');
+        console.log('Subscription Data: ', docS);
+
         return await databases.updateDocument(
             DATABASE_ID,
             PROPERTIES_COLLECTION_ID,
             propertyId,
-            updateData
+            updateData,
         );
     } catch (error) {
         console.error('Error updating property status in database:', error);

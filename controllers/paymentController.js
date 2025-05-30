@@ -118,7 +118,9 @@ exports.finalizeSubscription = async (req, res) => {
 
 exports.confirmSubscription = async (req, res) => {
     try {
-        const { propertyId, userId, paymentMethodId, stripeSubscriptionId, stripeCustomerId, stripePriceId, amount, currency } = req.body;
+        const { propertyId, userId, paymentMethodId, stripeSubscriptionId, stripeCustomerId, stripePriceId, amount, currency, startDate, duration } = req.body;
+
+        const parsedStartDate = new Date(Array.isArray(startDate) ? startDate[0] : startDate);
 
         await db.createSubscription({
             userId,
@@ -130,11 +132,14 @@ exports.confirmSubscription = async (req, res) => {
             amount,
             currency,
             status: 'active',
-            startDate: new Date(),
-            nextBillingDate: getNextBillingDate()
+            startDate: parsedStartDate.toISOString(),
+            nextBillingDate: getNextBillingDate(parsedStartDate),
+            endDate: getEndDate(parsedStartDate, duration),
+            currentPeriodStart: parsedStartDate.toISOString(),
+            currentPeriodEnd: getEndDate(parsedStartDate, duration)
         });
 
-        await db.updatePropertyStatus(propertyId, 'rented', userId);
+        await db.updatePropertyStatus(propertyId, 'rented', userId, getAvailableFrom(parsedStartDate, duration), getEndDate(parsedStartDate, duration));
 
         res.json({
             success: true,
@@ -199,8 +204,29 @@ exports.cancelSubscription = async (req, res) => {
     }
 };
 
-function getNextBillingDate(){
-    const date = new Date();
-    date.setDate(date.getDate() + 30);
-    return date;
+function getNextBillingDate(date){
+    const next = new Date(date);
+    next.setDate(next.getDate() + 30);
+    if(next){
+        return next.toISOString();
+    }
+    return null;
+}
+
+function getEndDate(date, duration){
+    const end = new Date(date);
+    end.setMonth(end.getMonth() + Number(duration));
+    if(end){
+        return end.toISOString();
+    }
+    return null;
+}
+
+function getAvailableFrom(date, duration){
+    const availableDate = new Date(getEndDate(date, duration));
+    availableDate.setDate(availableDate.getDate() + 7);
+    if(availableDate){
+        return availableDate.toISOString();
+    }
+    return null
 }
