@@ -141,6 +141,8 @@ exports.confirmSubscription = async (req, res) => {
 
         await db.updatePropertyStatus(propertyId, 'rented', userId, getAvailableFrom(parsedStartDate, duration), getEndDate(parsedStartDate, duration));
 
+        await db.updateUserRented(userId, propertyId);
+
         res.json({
             success: true,
             message: 'Subscription confirmed successfully'

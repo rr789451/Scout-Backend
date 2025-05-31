@@ -11,6 +11,7 @@ const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
 const SUBSCRIPTIONS_COLLECTION_ID = process.env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID;
 const PROPERTIES_COLLECTION_ID = process.env.APPWRITE_PROPERTIES_COLLECTION_ID;
 const PAYMENTS_COLLECTION_ID = process.env.APPWRITE_PAYMENTS_COLLECTION_ID;
+const USERS_COLLECTION_ID = process.env.APPWRITE_USERS_COLLECTION_ID;
 
 exports.createSubscription = async (subscriptionData) => {
     try {
@@ -120,6 +121,34 @@ exports.updatePropertyStatus = async (propertyId, status, rentedBy = null, avail
         throw new Error('Database error when updating property status');
     }
 };
+
+exports.updateUserRented = async (userId, propertyId) => {
+  try {
+    const user = await databases.getDocument(
+      DATABASE_ID,
+      USERS_COLLECTION_ID,
+      userId
+    );
+
+    const existingRented = user.rentedProperties || [];
+
+    if(!existingRented.includes(propertyId)) {
+      existingRented.push(propertyId);
+    }
+
+    return await databases.updateDocument(
+      DATABASE_ID,
+      USERS_COLLECTION_ID,
+      userId,
+      {
+        rentedProperties: existingRented
+      }
+    )
+  } catch (error) {
+    console.error('Error updating user rented properties: ', error);
+    throw error;
+  }
+}
 
 exports.updatePaymentStatus = async (paymentIntentId, status) => {
     try {
